@@ -489,7 +489,14 @@ function shutdown_system() {
 EOF
 
     # 使用 envsubst 替换变量
-    envsubst < /tmp/clash_functions_template > /tmp/clash_functions
+    if command -v envsubst &> /dev/null; then
+        envsubst < /tmp/clash_functions_template > /tmp/clash_functions
+    else
+        # 纯bash实现变量替换，不依赖envsubst
+        eval "cat << EOF
+$(cat /tmp/clash_functions_template)
+EOF" > /tmp/clash_functions
+    fi
 
     # 在临时函数文件中将 #is_quiet 替换为 $is_quiet
     sed -i 's/#is_quiet/$is_quiet/g' /tmp/clash_functions

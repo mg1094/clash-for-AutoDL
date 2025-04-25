@@ -295,6 +295,11 @@ sed -i '/^$/N;/^\n$/D' ~/.bashrc
 [[ ! -d "$Conf_Dir" ]] && mkdir -p $Conf_Dir
 [[ ! -d "$Server_Dir/bin" ]] && mkdir -p $Server_Dir/bin
 
+# 删除可能存在的转换文件和合并文件
+[[ -f "$Conf_Dir/config.yaml.converted" ]] && rm -f "$Conf_Dir/config.yaml.converted"
+[[ -f "$Conf_Dir/merged.yaml" ]] && rm -f "$Conf_Dir/merged.yaml"
+[[ -f "$Log_Dir/clash.log" ]] && rm -f "$Log_Dir/clash.log"
+
 # 检测并安装subconverter
 if [ ! -f "$SUBCONVERTER_DIR/subconverter" ]; then
     install_subconverter
@@ -528,13 +533,25 @@ EOF" > /tmp/clash_functions
     source ~/.bashrc
 fi
 
+# 如果是第一次运行或用户拒绝自动添加，此变量可能未设置
+if [ -z "${auto_proxy_enabled+x}" ]; then
+    auto_proxy_enabled=false
+fi
+
 # 添加 curl 测试
 echo "正在测试网络连接..."
 
 # 如果不是自动设置代理，则手动开启代理
 is_quiet_mode=true
 if [ "$auto_proxy_enabled" = false ]; then
-    proxy_on true
+    # 直接定义并使用proxy_on函数，而不是依赖于已加载的函数
+    export http_proxy=http://127.0.0.1:$CLASH_PORT
+    export https_proxy=http://127.0.0.1:$CLASH_PORT
+    export no_proxy=127.0.0.1,localhost
+    export HTTP_PROXY=http://127.0.0.1:$CLASH_PORT
+    export HTTPS_PROXY=http://127.0.0.1:$CLASH_PORT
+    export NO_PROXY=127.0.0.1,localhost
+    echo -e "${GREEN}[√] 已临时开启代理进行测试${NC}"
 fi
 
 if curl -s -o /dev/null -w "%{http_code}" google.com | grep -qE '^[0-9]+$'; then
@@ -545,7 +562,9 @@ fi
 
 # 如果不是自动设置代理，则手动关闭代理
 if [ "$auto_proxy_enabled" = false ]; then
-    proxy_off true
+    # 直接清除代理变量，而不是依赖于已加载的函数
+    unset http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
+    echo -e "${RED}[×] 已关闭临时测试代理${NC}"
 fi
 
 #==============================================================

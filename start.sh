@@ -3,6 +3,7 @@
 # 定义颜色变量
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # wget 命令检查
@@ -14,6 +15,7 @@ fi
 
 set +m  # 关闭监视模式，不再报告后台作业状态
 Status=0  # 脚本运行状态，默认为0，表示成功
+
 #==============================================================
 # 设置环境变量
 #==============================================================
@@ -28,7 +30,7 @@ SUBCONVERTER_DIR="$Server_Dir/subconverter"
 source $Server_Dir/.env
 
 # 第三方库版本变量
-CLASH_VERSION="v1.18.7"
+CLASH_VERSION="1.18"
 YQ_VERSION="v4.44.3"
 SUBCONVERTER_VERSION="v0.9.0"
 
@@ -39,7 +41,6 @@ SUBCONVERTER_TAR="subconverter.tar.gz"
 Config_File="$Conf_Dir/config.yaml"
 
 # URL变量
-SUBCONVERTER_DOWNLOAD_URL="https://gh-proxy.com/github.com/tindy2013/subconverter/releases/latest/download/subconverter_linux64.tar.gz"
 URL=${CLASH_URL:?Error: CLASH_URL variable is not set or empty}
 # Clash 密钥
 Secret=${CLASH_SECRET:-$(openssl rand -hex 32)}
@@ -56,6 +57,18 @@ MERGED_FILE="$Conf_Dir/merged.yaml"
 # Subconverter 配置
 SUBCONVERTER_URL="http://127.0.0.1:25500/sub"
 
+# GitHub镜像站点列表（按优先级排序）
+# 修改镜像站点列表，将 ghfast.top 放在前面
+GITHUB_MIRRORS=(
+    "ghfast.top/https://github.com"    # GitHub 加速代理
+    "github.com"                       # 原站
+    "kkgithub.com"
+    "gitclone.com"
+    "github.hscsec.cn"
+    "git.homegu.com"
+    "github.ur1.fun"
+)
+
 # 提示信息
 Text1="Clash订阅地址可访问！"
 Text2="Clash订阅地址不可访问！"
@@ -67,10 +80,10 @@ Text6="服务启动失败！"
 # CPU架构选项
 CpuArch_checks=("x86_64" "amd64" "aarch64" "arm64" "armv7")
 
-
 #==============================================================
 # 自定义函数
 #==============================================================
+
 # 编码URL
 urlencode() {
     local string="${1}"
@@ -109,130 +122,123 @@ check_yaml() {
     return 0
 }
 
+# 通用GitHub文件下载函数（支持镜像站点）
+download_github_file() {
+    local github_path="$1"      # GitHub路径，如 /Kuingsmile/clash-core/releases/download/v1.18.7/clash-linux-amd64-v1.18.7.gz
+    local output_file="$2"      # 输出文件路径
+    local description="$3"      # 下载描述
+    
+    echo -e "${YELLOW}正在下载 $description...${NC}"
+    
+    # 遍历所有镜像站点
+    for mirror in "${GITHUB_MIRRORS[@]}"; do
+        local download_url="https://${mirror}${github_path}"
+        
+        echo "尝试从 $mirror 下载..."
+        echo "下载地址: $download_url"
+        
+        # 尝试下载，最多重试3次
+        for attempt in $(seq 1 3); do
+            if [ $attempt -gt 1 ]; then
+                echo "第 $attempt 次重试..."
+            fi
+            
+            if $WGET_CMD \
+                --progress=bar:force:noscroll \
+                --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 1 \
+                -O "$output_file" \
+                "$download_url"; then
+                
+                # 验证下载的文件是否有效（非空且大于1KB）
+                if [ -f "$output_file" ] && [ $(stat -c%s "$output_file" 2>/dev/null || echo 0) -gt 1024 ]; then
+                    echo -e "${GREEN}✓ 从 $mirror 下载 $description 成功！${NC}"
+                    return 0
+                else
+                    echo -e "${RED}✗ 下载的文件无效，删除并重试...${NC}"
+                    rm -f "$output_file"
+                fi
+            fi
+            
+            if [ $attempt -lt 3 ]; then
+                echo "等待 ${RETRY_DELAY}s 后重试..."
+                sleep $RETRY_DELAY
+            fi
+        done
+        
+        echo -e "${RED}✗ 从 $mirror 下载失败${NC}"
+    done
+    
+    echo -e "${RED}✗ 所有镜像站点都下载失败: $description${NC}"
+    return 1
+}
+
+# 下载clash二进制文件
 download_clash() {
     local arch=$1
-    local url="https://gh-proxy.com/github.com/MetaCubeX/mihomo/releases/download/${CLASH_VERSION}/mihomo-linux-${arch}-${CLASH_VERSION}.gz"
+    local github_path="/Kuingsmile/clash-core/releases/download/${CLASH_VERSION}/clash-linux-${arch}-v${CLASH_VERSION}.0.gz"
     local temp_file="/tmp/clash-${arch}.gz"
     local target_file="$Server_Dir/bin/clash-linux-${arch}"
-    local max_attempts=3
-    local attempt=1
-
-    echo $url
-
-    while [ $attempt -le $max_attempts ]; do
-        echo "Downloading clash for ${arch} (Attempt $attempt of $max_attempts)..."
-        if $WGET_CMD \
-            --progress=bar:force:noscroll \
-            --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
-            -O "$temp_file" \
-            "$url"; then
-            echo "Download successful. Extracting..."
-            if gzip -d -c "$temp_file" > "$target_file"; then
-                chmod +x "$target_file"
-                rm "$temp_file"
-                echo "Clash binary for ${arch} is ready."
-                return 0
-            else
-                echo "Failed to extract the downloaded file."
-            fi
+    
+    echo -e "${YELLOW}开始下载 Clash for ${arch}...${NC}"
+    
+    if download_github_file "$github_path" "$temp_file" "Clash for ${arch}"; then
+        echo "正在解压 Clash 二进制文件..."
+        if gzip -d -c "$temp_file" > "$target_file"; then
+            chmod +x "$target_file"
+            rm -f "$temp_file"
+            echo -e "${GREEN}✓ Clash binary for ${arch} 已准备就绪${NC}"
+            return 0
         else
-            echo "Failed to download clash for ${arch}."
+            echo -e "${RED}✗ 解压下载文件失败${NC}"
+            rm -f "$temp_file"
         fi
-
-        attempt=$((attempt + 1))
-        if [ $attempt -le $max_attempts ]; then
-            echo "Retrying in 5 seconds..."
-            sleep 5
-        fi
-    done
-
-    echo "Failed to download clash for ${arch} after $max_attempts attempts."
+    fi
+    
+    echo -e "${RED}✗ 无法下载 Clash for ${arch}${NC}"
     return 1
 }
 
 # 检查并安装 yq
 install_yq() {
-    echo "Installing yq..."
-    local sleep_time=10
-
-    for attempt in $(seq 1 $MAX_RETRIES); do
-        if $WGET_CMD \
-            --progress=bar:force:noscroll \
-            --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
-            -O "$YQ_BINARY" \
-            "https://gh-proxy.com/github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"; then
-            if [ -f "$YQ_BINARY" ]; then
-                chmod +x "$YQ_BINARY"
-                echo "yq installed successfully."
-                return 0
-            else
-                echo "yq binary not found after download."
-            fi
-        else
-            echo "Download failed."
-        fi
-
-        echo "Retrying in 2 seconds..."
-        sleep 2
-    done
-
-    echo "Failed to install yq after $MAX_RETRIES attempts."
+    echo -e "${YELLOW}正在安装 yq...${NC}"
+    local github_path="/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+    
+    if download_github_file "$github_path" "$YQ_BINARY" "yq"; then
+        chmod +x "$YQ_BINARY"
+        echo -e "${GREEN}✓ yq 安装成功${NC}"
+        return 0
+    fi
+    
+    echo -e "${RED}✗ yq 安装失败${NC}"
     return 1
 }
 
 # 安装subconverter
 install_subconverter() {
-    TEMP_FILE="/tmp/subconverter.tar.gz"
-
-    for i in $(seq 1 $MAX_RETRIES); do
-        echo "正在下载 subconverter... (尝试 $i/$MAX_RETRIES)"
+    echo -e "${YELLOW}正在安装 subconverter...${NC}"
+    local github_path="/tindy2013/subconverter/releases/download/${SUBCONVERTER_VERSION}/subconverter_linux64.tar.gz"
+    local temp_file="/tmp/subconverter.tar.gz"
+    
+    if download_github_file "$github_path" "$temp_file" "subconverter"; then
+        echo "正在解压 subconverter..."
         
-        # 使用wget下载文件
-        if $WGET_CMD \
-            --progress=bar:force:noscroll \
-            --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 \
-            -O "$TEMP_FILE" \
-            "$SUBCONVERTER_DOWNLOAD_URL"; then
-            
-            echo "下载完成，正在解压..."
-            
-            # 捕获tar的输出和退出状态
-            tar_output=$(tar -xzf "$TEMP_FILE" -C "$Server_Dir" 2>&1)
-            tar_status=$?
+        # 捕获tar的输出和退出状态
+        tar_output=$(tar -xzf "$temp_file" -C "$Server_Dir" 2>&1)
+        tar_status=$?
 
-            if [ $tar_status -eq 0 ]; then
-                echo "subconverter 安装完成。"
-                rm -f "$TEMP_FILE"
-                return 0
-            else
-                echo "解压失败。错误信息:"
-                echo "$tar_output"
-            fi
+        if [ $tar_status -eq 0 ]; then
+            echo -e "${GREEN}✓ subconverter 安装完成${NC}"
+            rm -f "$temp_file"
+            return 0
         else
-            wget_status=$?
-            echo "下载失败。错误代码: $wget_status"
-            
-            # 分析wget的退出状态
-            case $wget_status in
-                1) echo "通用错误。";;
-                2) echo "解析错误。";;
-                3) echo "文件I/O错误。";;
-                4) echo "网络失败。";;
-                5) echo "SSL验证失败。";;
-                6) echo "用户名/密码认证失败。";;
-                7) echo "协议错误。";;
-                8) echo "服务器发出错误响应。";;
-                *) echo "未知错误生。";;
-            esac
+            echo -e "${RED}✗ 解压失败。错误信息:${NC}"
+            echo "$tar_output"
+            rm -f "$temp_file"
         fi
-        
-        echo "重试中..."
-        sleep $RETRY_DELAY
-    done
-
-    echo "安装 subconverter 失败，请检查网络连接或手动安装。"
+    fi
+    
+    echo -e "${RED}✗ subconverter 安装失败，请检查网络连接或手动安装${NC}"
     echo "正在退出..."
-    rm -f "$TEMP_FILE"
     sleep 10
     exit 1
 }
@@ -346,8 +352,6 @@ else
         exit 1
     fi
 fi
-
-
 
 #==============================================================
 # 配置文件格式验证与转换
@@ -569,4 +573,4 @@ fi
 
 #==============================================================
 # 恢复监视模式
-set -m  
+set -m

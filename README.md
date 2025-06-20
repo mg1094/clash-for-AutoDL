@@ -252,3 +252,34 @@ Secret忘记了，也可以上conf/config.yaml文件中查看。
 3. 程序日志中出现`error: unsupported rule type RULE-SET`报错，解决方法查看官方[WIKI](https://github.com/Dreamacro/clash/wiki/FAQ#error-unsupported-rule-type-rule-set)
 
 4. 由于独享IP和带宽的价格昂贵，AutoDL平台采用同地区的实例共享带宽方案，不对实例的网络带宽和流量进行单独计费。一个地区的带宽约为1~2Gbps，上下行带宽相等。因此，有些同学反应安装的时候下载速度太慢了。建议避开高峰时段，考虑在早上或者晚上的时段进行下载，以提高下载速度。
+
+<details>
+<summary>更新日志</summary>
+
+### 下载方法优化更新
+
+在 `start.sh` 脚本中，所有第三方组件的下载方法已全面优化：
+
+#### Clash Core 下载优化
+- **主要源**：使用 jsDelivr CDN (`https://cdn.jsdelivr.net/gh/Kuingsmile/clash-core@releases/download/version/`)
+- **备用源**：GitHub 直接下载
+- **优势**：利用全球 CDN 加速，提高下载速度和可靠性
+
+#### Subconverter 下载优化
+- **主要源**：使用 jsDelivr CDN (`https://cdn.jsdelivr.net/gh/tindy2013/subconverter@releases/download/version/`)
+- **备用源**：GitHub 直接下载
+- **优势**：配置文件转换工具下载更稳定
+
+#### YQ 工具下载优化
+- **主要源**：使用 jsDelivr CDN (`https://cdn.jsdelivr.net/gh/mikefarah/yq@releases/download/version/`)
+- **备用源**：GitHub 直接下载
+- **优势**：YAML 处理工具下载更可靠
+
+#### 改进特性
+- **多节点 CDN 支持**：支持 Fastly、Gcore、TestingCF、Quantil 四个 jsDelivr CDN 节点
+- **智能故障转移**：CDN 节点失败时自动切换到下一个节点，最后回退到 GitHub 直接下载
+- **中文提示**：提供清晰的下载进度和状态反馈，显示当前使用的 CDN 节点
+- **优化重试策略**：每个 CDN 节点独立重试，减少总体下载时间
+- **全球加速**：利用不同地区的 CDN 节点，提供最佳的下载体验
+
+</details>

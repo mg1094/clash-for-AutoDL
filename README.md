@@ -256,30 +256,26 @@ Secret忘记了，也可以上conf/config.yaml文件中查看。
 <details>
 <summary>更新日志</summary>
 
-### 下载方法优化更新
+### 2024/06/20 - 核心功能优化更新
 
-在 `start.sh` 脚本中，所有第三方组件的下载方法已全面优化：
+#### 下载功能全面重构
+- **GitHub镜像站点支持**：新增多个高速GitHub镜像站点，优先使用ghfast.top加速代理
+- **智能下载策略**：支持多镜像站点自动切换，下载失败时自动重试下一个镜像
+- **断点续传机制**：改进wget下载参数，增强下载稳定性和进度显示
 
-#### Clash Core 下载优化
-- **主要源**：使用 jsDelivr CDN (`https://cdn.jsdelivr.net/gh/Kuingsmile/clash-core@releases/download/version/`)
-- **备用源**：GitHub 直接下载
-- **优势**：利用全球 CDN 加速，提高下载速度和可靠性
+#### 配置处理增强
+- **YAML格式验证**：增加配置文件格式检查功能，自动识别无效配置
+- **Subconverter集成**：自动转换不符合格式的配置文件为标准Clash配置
+- **配置文件合并**：使用yq工具智能合并模板配置和订阅配置
 
-#### Subconverter 下载优化
-- **主要源**：使用 jsDelivr CDN (`https://cdn.jsdelivr.net/gh/tindy2013/subconverter@releases/download/version/`)
-- **备用源**：GitHub 直接下载
-- **优势**：配置文件转换工具下载更稳定
+#### 用户体验优化
+- **彩色输出提示**：增加绿色/红色/黄色状态提示，操作结果一目了然
+- **网络连接测试**：启动后自动测试网络连通性，确保代理正常工作
+- **交互式配置**：支持用户选择是否自动启用代理功能
 
-#### YQ 工具下载优化
-- **主要源**：使用 jsDelivr CDN (`https://cdn.jsdelivr.net/gh/mikefarah/yq@releases/download/version/`)
-- **备用源**：GitHub 直接下载
-- **优势**：YAML 处理工具下载更可靠
-
-#### 改进特性
-- **多节点 CDN 支持**：支持 Fastly、Gcore、TestingCF、Quantil 四个 jsDelivr CDN 节点
-- **智能故障转移**：CDN 节点失败时自动切换到下一个节点，最后回退到 GitHub 直接下载
-- **中文提示**：提供清晰的下载进度和状态反馈，显示当前使用的 CDN 节点
-- **优化重试策略**：每个 CDN 节点独立重试，减少总体下载时间
-- **全球加速**：利用不同地区的 CDN 节点，提供最佳的下载体验
+#### 脚本鲁棒性提升
+- **错误处理机制**：完善各种异常情况的处理逻辑
+- **进程管理优化**：改进Clash进程的启动、检测和清理机制
+- **环境清理功能**：启动前自动清理可能冲突的代理环境变量
 
 </details>

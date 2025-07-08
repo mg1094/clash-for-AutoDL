@@ -15,6 +15,8 @@
   - [x] **Require approvals: 1** - 需要至少1个审批
   - [x] **Dismiss stale reviews** - 解散过时的审查
   - [x] **Require review from CODEOWNERS** - 需要代码所有者审查
+  - [x] **Allow specified actors to bypass required pull requests** - 允许指定用户绕过PR要求
+    - 添加仓库所有者: `VocabVictor`
 
 #### ✅ 状态检查 (关键!)
 - [x] **Require status checks to pass before merging** - 合并前必须通过状态检查
@@ -28,20 +30,31 @@
 #### ✅ 其他限制
 - [x] **Require conversation resolution** - 需要解决所有对话
 - [x] **Require signed commits** - 需要签名提交 (可选)
-- [x] **Include administrators** - 管理员也受规则限制
+- [ ] **Include administrators** - 管理员也受规则限制 (关闭此选项允许所有者直接推送)
 
-### 3. 工作流程
+### 3. 双重工作流程
 
+#### 🔄 贡献者工作流程 (Pull Request)
 ```mermaid
 graph TD
-    A[开发者提交代码] --> B[创建Pull Request]
+    A[外部贡献者提交代码] --> B[创建Pull Request]
     B --> C[自动触发CI/CD]
     C --> D{所有测试通过?}
     D -->|否| E[阻止合并<br/>要求修复]
-    D -->|是| F[允许代码审查]
+    D -->|是| F[代码审查]
     F --> G[审查通过后合并]
     E --> H[修复问题后重新测试]
     H --> D
+```
+
+#### ⚡ 所有者工作流程 (直接推送)
+```mermaid
+graph TD
+    A[VocabVictor直接推送] --> B[自动触发CI/CD]
+    B --> C{测试通过?}
+    C -->|是| D[推送成功]
+    C -->|否| E[收到测试失败通知]
+    E --> F[本地修复后重新推送]
 ```
 
 ### 4. CI/CD检查项目
@@ -71,15 +84,22 @@ graph TD
 
 ### 6. 最佳实践
 
-#### 开发流程
-1. **创建功能分支**: `git checkout -b feature/new-feature`
-2. **本地测试**: 确保代码在本地运行
-3. **提交更改**: `git commit -m "详细的提交信息"`
-4. **推送分支**: `git push origin feature/new-feature`
-5. **创建PR**: 在GitHub上创建Pull Request
-6. **等待CI**: 所有自动化测试必须通过
-7. **代码审查**: 等待审查者批准
-8. **合并**: 自动合并到主分支
+#### 🤝 贡献者开发流程
+1. **Fork仓库**: 创建自己的副本
+2. **创建功能分支**: `git checkout -b feature/new-feature`
+3. **本地测试**: 确保代码在本地运行
+4. **提交更改**: `git commit -m "详细的提交信息"`
+5. **推送分支**: `git push origin feature/new-feature`
+6. **创建PR**: 在GitHub上创建Pull Request
+7. **等待CI**: 所有自动化测试必须通过
+8. **代码审查**: 等待VocabVictor审查批准
+9. **合并**: 审查通过后自动合并
+
+#### 👑 项目所有者流程
+1. **直接推送**: `git push origin master` (小修改、紧急修复)
+2. **使用PR**: 重大功能开发时仍建议使用PR流程
+3. **监控CI**: 即使直接推送也会触发自动化测试
+4. **审查贡献**: 及时审查外部贡献者的PR
 
 #### 提交消息规范
 ```

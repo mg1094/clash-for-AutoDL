@@ -112,14 +112,59 @@ check_yaml() {
         return 1
     fi
 
-    # 检查文件是否包含冒号
+    # 检查文件是否为base64编码的链接列表
+    if grep -q "^[A-Za-z0-9+/]*={0,2}$" "$file" && ! grep -q ':' "$file"; then
+        echo "检测到base64编码的代理链接列表，需要转换"
+        return 1
+    fi
+
+    # 检查文件是否包含冒号（YAML特征）
     if ! grep -q ':' "$file"; then
         echo "错误：文件不包含冒号，可能不是有效的YAML"
         return 1
     fi
 
+    # 检查是否包含基本的clash配置结构
+    if grep -q -E "(proxies:|proxy-groups:|rules:)" "$file"; then
+        echo "检测到clash配置结构"
+        return 0
+    fi
+
     # 文件非空且包含冒号，视为可能是有效的YAML
     return 0
+}
+
+# Fallback配置函数 - 当subconverter无法工作时使用
+use_fallback_config() {
+    echo -e "${YELLOW}使用fallback配置方案...${NC}"
+    
+    # 创建基本的clash配置文件
+    cat > "$Config_File" << 'EOF'
+port: 7890
+socks-port: 7891
+redir-port: 7892
+allow-lan: false
+mode: Global
+log-level: info
+ipv6: false
+external-controller: 127.0.0.1:6006
+
+proxies:
+  - name: "DIRECT"
+    type: direct
+
+proxy-groups:
+  - name: "PROXY"
+    type: select
+    proxies:
+      - "DIRECT"
+
+rules:
+  - MATCH,PROXY
+EOF
+    
+    echo -e "${YELLOW}已创建基本配置文件，clash将以直连模式运行${NC}"
+    echo -e "${YELLOW}注意：如需使用代理功能，请手动配置或提供有效的clash配置文件${NC}"
 }
 
 # 通用GitHub文件下载函数（支持镜像站点）
@@ -201,7 +246,26 @@ download_clash() {
 # 检查并安装 yq
 install_yq() {
     echo -e "${YELLOW}正在安装 yq...${NC}"
-    local github_path="/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+    
+    # 根据CPU架构选择对应的yq二进制文件
+    local yq_arch
+    case "$CpuArch" in
+        "x86_64"|"amd64")
+            yq_arch="amd64"
+            ;;
+        "aarch64"|"arm64")
+            yq_arch="arm64"
+            ;;
+        "armv7")
+            yq_arch="arm"
+            ;;
+        *)
+            echo -e "${RED}✗ 不支持的CPU架构: $CpuArch${NC}"
+            return 1
+            ;;
+    esac
+    
+    local github_path="/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${yq_arch}"
     
     if download_github_file "$github_path" "$YQ_BINARY" "yq"; then
         chmod +x "$YQ_BINARY"
@@ -216,7 +280,26 @@ install_yq() {
 # 安装subconverter
 install_subconverter() {
     echo -e "${YELLOW}正在安装 subconverter...${NC}"
-    local github_path="/tindy2013/subconverter/releases/download/${SUBCONVERTER_VERSION}/subconverter_linux64.tar.gz"
+    
+    # 根据CPU架构选择对应的subconverter包
+    local subconv_arch
+    case "$CpuArch" in
+        "x86_64"|"amd64")
+            subconv_arch="linux64"
+            ;;
+        "aarch64"|"arm64")
+            # ARM64架构的subconverter，如果没有则fallback到linux64
+            subconv_arch="linux64"
+            echo -e "${YELLOW}注意: ARM64架构将使用x86_64版本的subconverter，可能需要额外的兼容层${NC}"
+            ;;
+        *)
+            echo -e "${RED}✗ subconverter不支持的CPU架构: $CpuArch${NC}"
+            echo -e "${YELLOW}尝试使用linux64版本...${NC}"
+            subconv_arch="linux64"
+            ;;
+    esac
+    
+    local github_path="/tindy2013/subconverter/releases/download/${SUBCONVERTER_VERSION}/subconverter_${subconv_arch}.tar.gz"
     local temp_file="/tmp/subconverter.tar.gz"
     
     if download_github_file "$github_path" "$temp_file" "subconverter"; then
@@ -306,6 +389,30 @@ sed -i '/^$/N;/^\n$/D' ~/.bashrc
 [[ -f "$Conf_Dir/merged.yaml" ]] && rm -f "$Conf_Dir/merged.yaml"
 [[ -f "$Log_Dir/clash.log" ]] && rm -f "$Log_Dir/clash.log"
 
+#==============================================================
+# CPU架构检测（提前到依赖安装之前）
+#==============================================================
+# 获取CPU架构
+if /bin/arch &>/dev/null; then
+    CpuArch=`/bin/arch`
+elif /usr/bin/arch &>/dev/null; then
+    CpuArch=`/usr/bin/arch`
+elif /bin/uname -m &>/dev/null; then
+    CpuArch=`/bin/uname -m`
+else
+    echo -e "${RED}\n[ERROR] Failed to obtain CPU architecture！${NC}"
+    Status=1
+fi
+
+# 检查是否成功获取CPU架构
+if [[ -z "$CpuArch" ]]; then
+    echo -e "${RED}Failed to obtain CPU architecture${NC}"
+    Status=1
+    exit 1
+fi
+
+echo -e "${GREEN}检测到CPU架构: $CpuArch${NC}"
+
 # 检测并安装subconverter
 if [ ! -f "$SUBCONVERTER_DIR/subconverter" ]; then
     install_subconverter
@@ -362,9 +469,33 @@ else
     echo "检测到配置文件格式不正确，尝试使用subconverter进行转换..."
 
     # 启动subconverter
-    nohup "$Server_Dir/subconverter/subconverter" > /dev/null 2>&1 &
-    SUBCONVERTER_PID=$!
-    sleep 2  # 给subconverter一些启动时间
+    echo "尝试启动subconverter..."
+    if [ -f "$Server_Dir/subconverter/subconverter" ]; then
+        nohup "$Server_Dir/subconverter/subconverter" > "$Log_Dir/subconverter.log" 2>&1 &
+        SUBCONVERTER_PID=$!
+        sleep 3  # 给subconverter更多启动时间
+        
+        # 检查subconverter是否正常启动
+        if ! kill -0 $SUBCONVERTER_PID 2>/dev/null; then
+            echo -e "${RED}Subconverter启动失败，检查日志：${NC}"
+            cat "$Log_Dir/subconverter.log" | tail -5
+            echo "使用fallback配置..."
+            use_fallback_config
+            exit 1
+        fi
+        
+        # 测试subconverter是否响应
+        if ! curl -s --connect-timeout 5 "http://127.0.0.1:25500/version" >/dev/null 2>&1; then
+            echo -e "${YELLOW}Subconverter可能无法正常工作（架构兼容性问题），使用fallback配置${NC}"
+            kill $SUBCONVERTER_PID 2>/dev/null || true
+            use_fallback_config
+            exit 1
+        fi
+    else
+        echo -e "${RED}Subconverter可执行文件不存在${NC}"
+        use_fallback_config
+        exit 1
+    fi
 
     # 使用subconverter转换配置
     SUBCONVERTER_URL="http://127.0.0.1:25500/sub"
@@ -374,43 +505,37 @@ else
             mv "${Config_File}.converted" "$Config_File"
         else
             echo "Subconverter转换失败，无法生成有效的YAML文件。"
-            rm "${Config_File}.converted"
-            exit 1
+            rm -f "${Config_File}.converted"
+            # 关闭subconverter进程
+            kill $SUBCONVERTER_PID 2>/dev/null || true
+            # 使用fallback方案
+            use_fallback_config
         fi
     else
-        echo "Subconverter转换过程中发生错误。"
-        exit 1
+        echo "Subconverter转换过程中发生错误，使用fallback配置。"
+        # 关闭subconverter进程
+        kill $SUBCONVERTER_PID 2>/dev/null || true
+        # 使用fallback方案
+        use_fallback_config
     fi
 
     # 关闭subconverter进程
-    kill $SUBCONVERTER_PID
+    kill $SUBCONVERTER_PID 2>/dev/null || true
 fi
 
-# 合并配置文件
-$YQ_BINARY -n "load(\"$Config_File\") * load(\"$TEMPLATE_FILE\")" > $MERGED_FILE
-mv $MERGED_FILE $Config_File
-
-# CPU 配置检测
-#==============================================================
-# 检测CPU配置，设置CPU相关变量
-# 获取CPU架构
-if /bin/arch &>/dev/null; then
-    CpuArch=`/bin/arch`
-elif /usr/bin/arch &>/dev/null; then
-    CpuArch=`/usr/bin/arch`
-elif /bin/uname -m &>/dev/null; then
-    CpuArch=`/bin/uname -m`
+# 合并配置文件 (仅当模板文件存在时)
+if [ -f "$TEMPLATE_FILE" ]; then
+    if [ -x "$YQ_BINARY" ]; then
+        $YQ_BINARY -n "load(\"$Config_File\") * load(\"$TEMPLATE_FILE\")" > $MERGED_FILE
+        mv $MERGED_FILE $Config_File
+    else
+        echo -e "${RED}yq binary不可执行，跳过配置文件合并${NC}"
+    fi
 else
-    echo -e "${RED}\n[ERROR] Failed to obtain CPU architecture！${NC}"
+    echo -e "${YELLOW}模板文件不存在，跳过配置文件合并${NC}"
 fi
 
-# Check if we obtained CPU architecture, and Status is still 0
-if [[ $Status -eq 0 ]]; then
-  if [[ -z "$CpuArch" ]] ; then
-        echo "Failed to obtain CPU architecture"
-        Status=1  # 脚本运行状态设置为1，表示失败
-  fi
-fi 
+# CPU架构已在前面检测，此处无需重复检测
 
 #==============================================================
 # Clash 二进制文件检查与下载
@@ -458,7 +583,12 @@ fi
 #==============================================================
 # 自定义命令注入
 #==============================================================
-CLASH_PORT=$($YQ_BINARY eval '.port' $Config_File)
+# 获取Clash端口（如果yq可用）
+if [ -x "$YQ_BINARY" ]; then
+    CLASH_PORT=$($YQ_BINARY eval '.port' $Config_File 2>/dev/null || echo "7890")
+else
+    CLASH_PORT="7890"  # 默认端口
+fi
 
 if [[ $Status -eq 0 ]]; then
     # 定义要添加的函数内容

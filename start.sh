@@ -30,13 +30,13 @@ SUBCONVERTER_DIR="$Server_Dir/subconverter"
 source $Server_Dir/.env
 
 # 第三方库版本变量
-CLASH_VERSION="1.18"
+MIHOMO_VERSION="1.19.11"
 YQ_VERSION="v4.44.3"
 SUBCONVERTER_VERSION="v0.9.0"
 
 # 第三方库和配置文件保存路径
 YQ_BINARY="$Server_Dir/bin/yq"
-log_file="logs/clash.log"
+log_file="logs/mihomo.log"
 SUBCONVERTER_TAR="subconverter.tar.gz"
 Config_File="$Conf_Dir/config.yaml"
 
@@ -217,21 +217,21 @@ download_github_file() {
     return 1
 }
 
-# 下载clash二进制文件
+# 下载mihomo二进制文件
 download_clash() {
     local arch=$1
-    local github_path="/Kuingsmile/clash-core/releases/download/${CLASH_VERSION}/clash-linux-${arch}-v${CLASH_VERSION}.0.gz"
-    local temp_file="/tmp/clash-${arch}.gz"
-    local target_file="$Server_Dir/bin/clash-linux-${arch}"
+    local github_path="/MetaCubeX/mihomo/releases/download/v${MIHOMO_VERSION}/mihomo-linux-${arch}-compatible-v${MIHOMO_VERSION}.gz"
+    local temp_file="/tmp/mihomo-${arch}.gz"
+    local target_file="$Server_Dir/bin/mihomo-linux-${arch}"
     
-    echo -e "${YELLOW}开始下载 Clash for ${arch}...${NC}"
+    echo -e "${YELLOW}开始下载 Mihomo for ${arch}...${NC}"
     
-    if download_github_file "$github_path" "$temp_file" "Clash for ${arch}"; then
-        echo "正在解压 Clash 二进制文件..."
+    if download_github_file "$github_path" "$temp_file" "Mihomo for ${arch}"; then
+        echo "正在解压 Mihomo 二进制文件..."
         if gzip -d -c "$temp_file" > "$target_file"; then
             chmod +x "$target_file"
             rm -f "$temp_file"
-            echo -e "${GREEN}✓ Clash binary for ${arch} 已准备就绪${NC}"
+            echo -e "${GREEN}✓ Mihomo binary for ${arch} 已准备就绪${NC}"
             return 0
         else
             echo -e "${RED}✗ 解压下载文件失败${NC}"
@@ -239,7 +239,7 @@ download_clash() {
         fi
     fi
     
-    echo -e "${RED}✗ 无法下载 Clash for ${arch}${NC}"
+    echo -e "${RED}✗ 无法下载 Mihomo for ${arch}${NC}"
     return 1
 }
 
@@ -387,7 +387,7 @@ sed -i '/^$/N;/^\n$/D' ~/.bashrc
 # 删除可能存在的转换文件和合并文件
 [[ -f "$Conf_Dir/config.yaml.converted" ]] && rm -f "$Conf_Dir/config.yaml.converted"
 [[ -f "$Conf_Dir/merged.yaml" ]] && rm -f "$Conf_Dir/merged.yaml"
-[[ -f "$Log_Dir/clash.log" ]] && rm -f "$Log_Dir/clash.log"
+[[ -f "$Log_Dir/mihomo.log" ]] && rm -f "$Log_Dir/mihomo.log"
 
 #==============================================================
 # CPU架构检测（提前到依赖安装之前）
@@ -425,8 +425,8 @@ fi
 
 # 设置subconverter参数
 SUBCONVERTER_PARAMS="target=clash&url=$(urlencode "${URL}")"
-# 检测clash进程是否存在，存在则要先杀掉，不存在就正常执行
-pids=$(pgrep -f "clash-linux")
+# 检测mihomo进程是否存在，存在则要先杀掉，不存在就正常执行
+pids=$(pgrep -f "mihomo-linux")
 if [ -n "$pids" ]; then
     kill $pids &>/dev/null
 fi
@@ -547,23 +547,23 @@ if [[ $Status -eq 0 ]]; then
     Text5="服务启动成功！"
     Text6="服务启动失败！"
     if [[ $CpuArch =~ "x86_64" || $CpuArch =~ "amd64"  ]]; then
-        clash_bin="$Server_Dir/bin/clash-linux-amd64"
-        [[ ! -f "$clash_bin" ]] && download_clash "amd64"
-        nohup "$clash_bin" -d "$Conf_Dir" > "$Log_Dir/clash.log" 2>&1 </dev/null &
+        mihomo_bin="$Server_Dir/bin/mihomo-linux-amd64"
+        [[ ! -f "$mihomo_bin" ]] && download_clash "amd64"
+        nohup "$mihomo_bin" -d "$Conf_Dir" > "$Log_Dir/mihomo.log" 2>&1 </dev/null &
         disown
         ReturnStatus=$?
         if_success $Text5 $Text6 $ReturnStatus
     elif [[ $CpuArch =~ "aarch64" ||  $CpuArch =~ "arm64" ]]; then
-        clash_bin="$Server_Dir/bin/clash-linux-arm64"
-        [[ ! -f "$clash_bin" ]] && download_clash "arm64"
-        nohup "$clash_bin" -d "$Conf_Dir" > "$Log_Dir/clash.log" 2>&1 </dev/null &
+        mihomo_bin="$Server_Dir/bin/mihomo-linux-arm64"
+        [[ ! -f "$mihomo_bin" ]] && download_clash "arm64"
+        nohup "$mihomo_bin" -d "$Conf_Dir" > "$Log_Dir/mihomo.log" 2>&1 </dev/null &
         disown
         ReturnStatus=$?
         if_success $Text5 $Text6 $ReturnStatus
     elif [[ $CpuArch =~ "armv7" ]]; then
-        clash_bin="$Server_Dir/bin/clash-linux-armv7"
-        [[ ! -f "$clash_bin" ]] && download_clash "armv7"
-        nohup "$clash_bin" -d "$Conf_Dir" > "$Log_Dir/clash.log" 2>&1 </dev/null &
+        mihomo_bin="$Server_Dir/bin/mihomo-linux-armv7"
+        [[ ! -f "$mihomo_bin" ]] && download_clash "armv7"
+        nohup "$mihomo_bin" -d "$Conf_Dir" > "$Log_Dir/mihomo.log" 2>&1 </dev/null &
         disown
         ReturnStatus=$?
         if_success $Text5 $Text6 $ReturnStatus

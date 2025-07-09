@@ -1,6 +1,6 @@
 conf/config*.yaml
 conf/cache.db
-clash.log
+*.log
 .env
 logs/
 bin/

@@ -8,3 +8,5 @@ subconverter/
 *.zip
 *.tar.gz
 .ipynb_checkpoints/
+test_clash.sh
+CLAUDE.md

@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Copyright (c) 2024 VocabVictors
+# Author: VocabVictors <w93854@gmail.com>
+# License: MIT
+# Project: clash-for-AutoDL
+# Description: Clash proxy service startup script for AutoDL environment
+
 # 定义颜色变量
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -95,6 +101,30 @@ urlencode() {
         encoded+="${o}"
     done
     echo "${encoded}"
+}
+
+# 验证订阅URL有效性
+validate_subscription_url() {
+    local url="$1"
+    echo -e "${YELLOW}正在验证订阅URL...${NC}"
+    
+    # 检查URL格式
+    if [[ ! "$url" =~ ^https?:// ]]; then
+        echo -e "${RED}错误：订阅URL格式不正确，必须以http://或https://开头${NC}"
+        return 1
+    fi
+    
+    # 尝试连接检查
+    local response_code
+    response_code=$(curl -o /dev/null -L -k -sS --retry 3 -m 10 --connect-timeout 10 -w "%{http_code}" "$url" 2>/dev/null)
+    
+    if [[ "$response_code" =~ ^[23][0-9]{2}$ ]]; then
+        echo -e "${GREEN}✓ 订阅URL验证成功 (HTTP $response_code)${NC}"
+        return 0
+    else
+        echo -e "${RED}✗ 订阅URL验证失败 (HTTP $response_code)${NC}"
+        return 1
+    fi
 }
 
 # 检查YAML文件格式是否正确

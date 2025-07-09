@@ -1,2 +1,0 @@
-wget https://kkgithub.com/tindy2013/subconverter/releases/download/v0.9.0/subconverter_linux64.tar.gz
-wget https://github.com/tindy2013/subconverter/releases/download/v0.9.0/subconverter_linux64.tar.gz

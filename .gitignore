@@ -1,4 +1,4 @@
-conf/config.yaml
+conf/config*.yaml
 conf/cache.db
 clash.log
 .env

@@ -24,7 +24,6 @@ Status=0  # 脚本运行状态，默认为0，表示成功
 Server_Dir="$( cd "$( dirname "$(readlink -f "${BASH_SOURCE[0]}")" )" && pwd )"
 Conf_Dir="$Server_Dir/conf"
 Log_Dir="$Server_Dir/logs"
-SUBCONVERTER_DIR="$Server_Dir/subconverter"
 
 # 注入配置文件里面的变量
 source $Server_Dir/.env
@@ -32,13 +31,12 @@ source $Server_Dir/.env
 # 第三方库版本变量
 MIHOMO_VERSION="1.19.11"
 YQ_VERSION="v4.44.3"
-SUBCONVERTER_VERSION="v0.9.0"
 
 # 第三方库和配置文件保存路径
 YQ_BINARY="$Server_Dir/bin/yq"
 log_file="logs/mihomo.log"
-SUBCONVERTER_TAR="subconverter.tar.gz"
 Config_File="$Conf_Dir/config.yaml"
+CONVERTER_SCRIPT="$Server_Dir/converter.sh"
 
 # URL变量
 URL=${CLASH_URL:?Error: CLASH_URL variable is not set or empty}
@@ -53,9 +51,6 @@ RETRY_DELAY=5
 # Clash 配置
 TEMPLATE_FILE="$Conf_Dir/template.yaml"
 MERGED_FILE="$Conf_Dir/merged.yaml"
-
-# Subconverter 配置
-SUBCONVERTER_URL="http://127.0.0.1:25500/sub"
 
 # GitHub镜像站点列表（按优先级排序）
 # 修改镜像站点列表，将 ghfast.top 放在前面
@@ -134,37 +129,23 @@ check_yaml() {
     return 0
 }
 
-# Fallback配置函数 - 当subconverter无法工作时使用
-use_fallback_config() {
-    echo -e "${YELLOW}使用fallback配置方案...${NC}"
+# 使用自定义转换器转换配置
+use_custom_converter() {
+    echo -e "${YELLOW}使用自定义转换器进行配置转换...${NC}"
     
-    # 创建基本的clash配置文件
-    cat > "$Config_File" << 'EOF'
-port: 7890
-socks-port: 7891
-redir-port: 7892
-allow-lan: false
-mode: Global
-log-level: info
-ipv6: false
-external-controller: 127.0.0.1:6006
-
-proxies:
-  - name: "DIRECT"
-    type: direct
-
-proxy-groups:
-  - name: "PROXY"
-    type: select
-    proxies:
-      - "DIRECT"
-
-rules:
-  - MATCH,PROXY
-EOF
-    
-    echo -e "${YELLOW}已创建基本配置文件，clash将以直连模式运行${NC}"
-    echo -e "${YELLOW}注意：如需使用代理功能，请手动配置或提供有效的clash配置文件${NC}"
+    if [ -f "$CONVERTER_SCRIPT" ]; then
+        # 使用自定义转换器
+        if bash "$CONVERTER_SCRIPT" "$Config_File" "$Config_File"; then
+            echo -e "${GREEN}自定义转换器转换成功${NC}"
+            return 0
+        else
+            echo -e "${RED}自定义转换器转换失败${NC}"
+            return 1
+        fi
+    else
+        echo -e "${RED}转换器脚本不存在: $CONVERTER_SCRIPT${NC}"
+        return 1
+    fi
 }
 
 # 通用GitHub文件下载函数（支持镜像站点）
@@ -277,53 +258,20 @@ install_yq() {
     return 1
 }
 
-# 安装subconverter
-install_subconverter() {
-    echo -e "${YELLOW}正在安装 subconverter...${NC}"
-    
-    # 根据CPU架构选择对应的subconverter包
-    local subconv_arch
-    case "$CpuArch" in
-        "x86_64"|"amd64")
-            subconv_arch="linux64"
-            ;;
-        "aarch64"|"arm64")
-            # ARM64架构的subconverter，如果没有则fallback到linux64
-            subconv_arch="linux64"
-            echo -e "${YELLOW}注意: ARM64架构将使用x86_64版本的subconverter，可能需要额外的兼容层${NC}"
-            ;;
-        *)
-            echo -e "${RED}✗ subconverter不支持的CPU架构: $CpuArch${NC}"
-            echo -e "${YELLOW}尝试使用linux64版本...${NC}"
-            subconv_arch="linux64"
-            ;;
-    esac
-    
-    local github_path="/tindy2013/subconverter/releases/download/${SUBCONVERTER_VERSION}/subconverter_${subconv_arch}.tar.gz"
-    local temp_file="/tmp/subconverter.tar.gz"
-    
-    if download_github_file "$github_path" "$temp_file" "subconverter"; then
-        echo "正在解压 subconverter..."
-        
-        # 捕获tar的输出和退出状态
-        tar_output=$(tar -xzf "$temp_file" -C "$Server_Dir" 2>&1)
-        tar_status=$?
-
-        if [ $tar_status -eq 0 ]; then
-            echo -e "${GREEN}✓ subconverter 安装完成${NC}"
-            rm -f "$temp_file"
-            return 0
-        else
-            echo -e "${RED}✗ 解压失败。错误信息:${NC}"
-            echo "$tar_output"
-            rm -f "$temp_file"
-        fi
+# 确保转换器脚本存在且可执行
+check_converter_script() {
+    if [ ! -f "$CONVERTER_SCRIPT" ]; then
+        echo -e "${RED}✗ 转换器脚本不存在: $CONVERTER_SCRIPT${NC}"
+        return 1
     fi
     
-    echo -e "${RED}✗ subconverter 安装失败，请检查网络连接或手动安装${NC}"
-    echo "正在退出..."
-    sleep 10
-    exit 1
+    if [ ! -x "$CONVERTER_SCRIPT" ]; then
+        echo -e "${YELLOW}设置转换器脚本执行权限...${NC}"
+        chmod +x "$CONVERTER_SCRIPT"
+    fi
+    
+    echo -e "${GREEN}✓ 转换器脚本已准备就绪${NC}"
+    return 0
 }
 
 # 自定义action函数，实现通用action功能
@@ -413,18 +361,17 @@ fi
 
 echo -e "${GREEN}检测到CPU架构: $CpuArch${NC}"
 
-# 检测并安装subconverter
-if [ ! -f "$SUBCONVERTER_DIR/subconverter" ]; then
-    install_subconverter
-fi
-
 # 检测并安装yq
 if [ ! -f "$YQ_BINARY" ]; then
     install_yq
 fi
 
-# 设置subconverter参数
-SUBCONVERTER_PARAMS="target=clash&url=$(urlencode "${URL}")"
+# 检查转换器脚本
+if ! check_converter_script; then
+    echo -e "${RED}转换器脚本检查失败，请确保 converter.sh 存在${NC}"
+    exit 1
+fi
+
 # 检测mihomo进程是否存在，存在则要先杀掉，不存在就正常执行
 pids=$(pgrep -f "mihomo-linux")
 if [ -n "$pids" ]; then
@@ -466,61 +413,21 @@ fi
 if check_yaml "$Config_File"; then
     echo "配置文件格式正确，无需转换。"
 else
-    echo "检测到配置文件格式不正确，尝试使用subconverter进行转换..."
-
-    # 启动subconverter
-    echo "尝试启动subconverter..."
-    if [ -f "$Server_Dir/subconverter/subconverter" ]; then
-        nohup "$Server_Dir/subconverter/subconverter" > "$Log_Dir/subconverter.log" 2>&1 &
-        SUBCONVERTER_PID=$!
-        sleep 3  # 给subconverter更多启动时间
-        
-        # 检查subconverter是否正常启动
-        if ! kill -0 $SUBCONVERTER_PID 2>/dev/null; then
-            echo -e "${RED}Subconverter启动失败，检查日志：${NC}"
-            cat "$Log_Dir/subconverter.log" | tail -5
-            echo "使用fallback配置..."
-            use_fallback_config
-            exit 1
-        fi
-        
-        # 测试subconverter是否响应
-        if ! curl -s --connect-timeout 5 "http://127.0.0.1:25500/version" >/dev/null 2>&1; then
-            echo -e "${YELLOW}Subconverter可能无法正常工作（架构兼容性问题），使用fallback配置${NC}"
-            kill $SUBCONVERTER_PID 2>/dev/null || true
-            use_fallback_config
-            exit 1
-        fi
-    else
-        echo -e "${RED}Subconverter可执行文件不存在${NC}"
-        use_fallback_config
+    echo "检测到配置文件格式不正确，尝试使用自定义转换器进行转换..."
+    
+    # 使用自定义转换器
+    if ! use_custom_converter; then
+        echo -e "${RED}自定义转换器转换失败，无法继续${NC}"
         exit 1
     fi
-
-    # 使用subconverter转换配置
-    SUBCONVERTER_URL="http://127.0.0.1:25500/sub"
-    if curl -s -o "${Config_File}.converted" "${SUBCONVERTER_URL}?${SUBCONVERTER_PARAMS}"; then
-        if check_yaml "${Config_File}.converted"; then
-            echo "Subconverter转换成功，文件现在是有效的YAML格式。"
-            mv "${Config_File}.converted" "$Config_File"
-        else
-            echo "Subconverter转换失败，无法生成有效的YAML文件。"
-            rm -f "${Config_File}.converted"
-            # 关闭subconverter进程
-            kill $SUBCONVERTER_PID 2>/dev/null || true
-            # 使用fallback方案
-            use_fallback_config
-        fi
+    
+    # 验证转换后的配置文件
+    if check_yaml "$Config_File"; then
+        echo -e "${GREEN}配置文件转换成功，格式正确${NC}"
     else
-        echo "Subconverter转换过程中发生错误，使用fallback配置。"
-        # 关闭subconverter进程
-        kill $SUBCONVERTER_PID 2>/dev/null || true
-        # 使用fallback方案
-        use_fallback_config
+        echo -e "${RED}转换后的配置文件格式仍然不正确${NC}"
+        exit 1
     fi
-
-    # 关闭subconverter进程
-    kill $SUBCONVERTER_PID 2>/dev/null || true
 fi
 
 # 合并配置文件 (仅当模板文件存在时)

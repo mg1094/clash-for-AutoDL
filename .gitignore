@@ -7,3 +7,4 @@ bin/
 subconverter/
 *.zip
 *.tar.gz
+.ipynb_checkpoints/

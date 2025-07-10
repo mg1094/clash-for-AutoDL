@@ -174,35 +174,65 @@ shutdown_system
 
 ## Clash Dashboard (可选，不是梯子正常运行的必要选项)
 
-- 安装并使用ngork
+由于监管要求，AutoDL平台上禁止个人用户开放外网端口，因此需要使用端口转发技术来访问Clash Dashboard。以下提供三种方案，推荐使用前两种。
 
-由于监管要求，AutoDL平台上禁止个人用户开放外网端口，所以需要使用ngrok进行内网穿透。
+### 方案一：SSH 端口转发（推荐）
 
-ngrog是一个外网映射工具，简单理解就是当你使用它之后，会给你生产一个域名，别人就可以通过这个域名来访问你的电脑了。
+SSH端口转发是最简单直接的方式，无需安装额外软件。
 
-使用ngrok前，需要先安装ngrok。
+1. 在本地终端（不是AutoDL服务器）运行以下命令：
 
 ```bash
- curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list && sudo apt update && sudo apt install ngrok
+ssh -L 6006:localhost:6006 username@autodl_server_ip
+```
+
+其中：
+- `username` 是你的AutoDL用户名
+- `autodl_server_ip` 是你的AutoDL服务器IP地址
+
+2. 保持SSH连接，在本地浏览器访问：`http://localhost:6006/ui`
+
+3. 在`API Base URL`中输入：`http://localhost:6006`，在`Secret(optional)`中输入启动时显示的Secret
+
+### 方案二：VSCode 端口转发（推荐）
+
+如果你使用VSCode连接AutoDL服务器，可以使用VSCode内置的端口转发功能。
+
+1. 在VSCode中连接到AutoDL服务器
+2. 打开终端，确保Clash服务正在运行
+3. 在VSCode左侧找到"端口"面板（如果没有显示，按`Ctrl+Shift+P`，搜索"Forward a Port"）
+4. 点击"+"添加端口转发，输入`6006`
+5. VSCode会自动创建端口转发，点击生成的本地地址即可访问Dashboard
+
+### 方案三：ngrok 内网穿透（备用）
+
+如果上述两种方案都无法使用，可以考虑使用ngrok进行内网穿透。
+
+> **注意**：ngrok会将你的服务暴露到公网，请注意安全风险。
+
+ngrok是一个外网映射工具，简单理解就是当你使用它之后，会给你生成一个域名，别人就可以通过这个域名来访问你的服务。
+
+- 安装ngrok
+
+```bash
+curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list && sudo apt update && sudo apt install ngrok
 ```
 
 ![11.png](https://s2.loli.net/2024/06/20/uCi94eqBEJUafS3.png)
 
-- 启动ngrok
+- 配置ngrok
 
-安装成功后，我们先到ngork官网下载获取token，首先点击下面的链接注册登录，进入首页
-
-[Ngork](https://dashboard.ngrok.com/login)
+前往 [ngrok官网](https://dashboard.ngrok.com/login) 注册账号并获取token：
 
 ![12.png](https://s2.loli.net/2024/06/20/85kmWYwPQcjRZCB.png)
 
 红框处即为你的token，复制一整条命令，然后在终端中运行。
 
-- 映射端口
-
 ![13.png](https://s2.loli.net/2024/06/20/J8KftF1hm736WsB.png)
 
-打开新的shell，运行下面的命令，映射6006端口
+- 映射端口
+
+打开新的shell，运行下面的命令，映射6006端口：
 
 ```bash
 proxy_off
@@ -213,31 +243,27 @@ ngrok http 6006
 
 ![15.png](https://s2.loli.net/2024/06/20/tGRdS2HnXKxPr7U.png)
 
-- 登录管理界面
+- 访问Dashboard
 
-点击链接（例如图中是https://078d-58-144-141-213.ngrok-free.app.ngrok.io，要加上/ui），跳转到中间页面
+点击链接（例如图中是https://078d-58-144-141-213.ngrok-free.app，记得加上`/ui`后缀），跳转到中间页面：
 
 ![16.png](https://s2.loli.net/2024/06/20/oUykYI7zR8mxtri.png)
 
-点击`Visit Site`, 跳转到管理界面
+点击`Visit Site`即可访问Dashboard。
+
+### Dashboard 使用说明
+
+无论使用哪种方案，最终都会进入Clash Dashboard界面：
 
 ![17.png](https://s2.loli.net/2024/06/20/HzNquhIxLkPecTm.png)
 
-- 最后的设置
+在`API Base URL`中输入对应的地址，在`Secret(optional)`中输入启动时显示的Secret（也可以在`conf/config.yaml`文件中查看）。
 
-在`API Base URL`一栏中输入ngork的映射地址（例如图中是https://078d-58-144-141-213.ngrok-free.app.ngrok.io） ，在`Secret(optional)`一栏中输入启动成功后输出的Secret。
-
-Secret忘记了，也可以上conf/config.yaml文件中查看。
-
-点击Add并选择刚刚输入的管理界面地址，之后便可在浏览器上进行一些配置。
-
-最后，就得到了一个和Clash for Windows用法类似的Clash Dashboard管理界面。
+配置完成后，你就得到了一个和Clash for Windows类似的管理界面：
 
 ![18.png](https://s2.loli.net/2024/06/20/pLRhr7WQiCZDBY3.png)
 
-- 更多教程
-
-此 Clash Dashboard 使用的是[yacd](https://github.com/haishanh/yacd)项目，详细使用方法请移步到yacd上查询。
+此 Clash Dashboard 使用的是[yacd](https://github.com/haishanh/yacd)项目，详细使用方法请参考yacd文档。
 
 <br>
 

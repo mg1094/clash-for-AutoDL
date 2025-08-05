@@ -151,6 +151,151 @@ tcp6       0      0 :::7892                 :::*                    LISTEN
 
 <br>
 
+## 代理管理
+
+项目提供了三个代理管理脚本，用于更灵活地控制代理设置：
+
+### 代理控制脚本
+
+- `proxy_on.sh` - 开启代理
+- `proxy_off.sh` - 关闭代理  
+- `test_proxy.sh` - 测试代理连接
+
+### 使用方法
+
+给脚本执行权限：
+```bash
+chmod +x proxy_on.sh proxy_off.sh test_proxy.sh
+```
+
+开启代理（必须使用 source 命令）：
+```bash
+source proxy_on.sh
+```
+
+测试代理连接：
+```bash
+bash test_proxy.sh
+```
+
+关闭代理：
+```bash
+source proxy_off.sh
+```
+
+### 代理环境变量说明
+
+开启代理后，脚本会设置以下环境变量：
+- `http_proxy=http://127.0.0.1:7890`
+- `https_proxy=http://127.0.0.1:7890`
+- `HTTP_PROXY=http://127.0.0.1:7890`
+- `HTTPS_PROXY=http://127.0.0.1:7890`
+- `no_proxy="localhost,127.0.0.1,::1,*.local"`
+
+> **注意**：每次新开终端都需要重新运行 `source proxy_on.sh` 来设置代理环境变量。
+
+<br>
+
+## 故障排除
+
+### Hugging Face 访问问题
+
+如果遇到 Hugging Face 等外网服务访问超时问题，请按以下步骤排查：
+
+#### 1. 检查服务状态
+```bash
+bash test_proxy.sh
+```
+
+#### 2. 确认代理配置
+项目已预配置 Hugging Face 相关域名走美国节点：
+```yaml
+rules:
+  - 'DOMAIN-SUFFIX,huggingface.co,美国节点'
+  - 'DOMAIN-SUFFIX,hf.co,美国节点'
+  - 'DOMAIN-SUFFIX,huggingfaceassets.com,美国节点'
+```
+
+#### 3. 测试代理连接
+开启代理后测试：
+```bash
+source proxy_on.sh
+wget https://huggingface.co/
+```
+
+或使用 curl 测试：
+```bash
+curl --proxy http://127.0.0.1:7890 -I https://huggingface.co/
+```
+
+### 常见问题解决
+
+#### 问题1：服务启动但连接超时
+**症状**：Clash 服务正常运行，端口正在监听，但访问外网仍然超时
+
+**解决方案**：
+1. 检查环境变量是否设置：`echo $http_proxy`
+2. 如果未设置，运行：`source proxy_on.sh`
+3. 重新测试网络连接
+
+#### 问题2：代理节点连接失败
+**症状**：代理设置正确，但特定网站无法访问
+
+**解决方案**：
+1. 访问 Clash Dashboard 检查节点状态
+2. 手动切换到其他节点测试
+3. 修改配置文件规则使用不同地区节点：
+   ```yaml
+   # 改为使用香港节点
+   - 'DOMAIN-SUFFIX,huggingface.co,香港节点'
+   # 或使用自动选择
+   - 'DOMAIN-SUFFIX,huggingface.co,自动选择'
+   ```
+
+#### 问题3：脚本运行报错
+**症状**：运行脚本时出现 `Bad substitution` 或 `[[: not found` 错误
+
+**解决方案**：
+- 使用 bash 而不是 sh 运行脚本：`bash restart.sh`
+- 确保脚本有执行权限：`chmod +x *.sh`
+
+#### 问题4：代理环境变量失效
+**症状**：新开终端后代理不生效
+
+**解决方案**：
+- 每次新开终端都需要运行：`source proxy_on.sh`
+- 或者将代理设置添加到 `~/.bashrc` 实现永久设置：
+  ```bash
+  echo 'source /path/to/clash-for-AutoDL/proxy_on.sh' >> ~/.bashrc
+  ```
+
+### 日志查看
+
+如果问题仍然存在，请查看详细日志：
+```bash
+# 查看 Clash 运行日志
+tail -f logs/mihomo.log
+# 或
+tail -f logs/clash.log
+
+# 查看最近 50 行日志
+tail -n 50 logs/mihomo.log
+```
+
+### 网络测试工具
+
+项目提供了完整的网络测试脚本：
+```bash
+# 全面测试代理状态
+bash test_proxy.sh
+
+# 快速测试特定网站
+curl --connect-timeout 10 --max-time 15 https://huggingface.co/
+curl --connect-timeout 10 --max-time 15 https://www.google.com/
+```
+
+<br>
+
 ## 停止程序
 
 - 临时停止

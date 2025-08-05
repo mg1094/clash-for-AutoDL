@@ -1,0 +1,127 @@
+mixed-port: 7890
+allow-lan: true
+bind-address: '*'
+mode: rule
+log-level: info
+external-controller: '127.0.0.1:9090'
+external-ui: dashboard
+hosts:
+  mtalk.google.com: 108.177.125.188
+dns:
+  enable: true
+  ipv6: true
+  listen: '127.0.0.1:5334'
+  default-nameserver: [180.184.1.1, 119.29.29.29, 223.5.5.5]
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  use-hosts: true
+  fake-ip-filter: ['*.n.n.srv.nintendo.net', +.stun.playstation.net, 'xbox.*.*.microsoft.com', '*.msftncsi.com', '*.msftconnecttest.com', WORKGROUP, '*.lan', 'stun.*.*.*', 'stun.*.*', time.windows.com, time.nist.gov, time.apple.com, time.asia.apple.com, '*.ntp.org.cn', '*.openwrt.pool.ntp.org', time1.cloud.tencent.com, time.ustc.edu.cn, pool.ntp.org, ntp.ubuntu.com, '*.*.xboxlive.com', speedtest.cros.wr.pvp.net, stun.services.mozilla1.com, ntp.nasa.gov]
+  nameserver-policy: {+.pphimalayanrt.com: 223.5.5.5, st.dl.eccdnx.com: 223.5.5.5, +.tmall.com: 223.5.5.5, +.taobao.com: 223.5.5.5, +.alicdn.com: 223.5.5.5, +.aliyun.com: 223.5.5.5, +.alipay.com: 223.5.5.5, +.alibaba.com: 223.5.5.5, +.qq.com: 119.29.29.29, +.tencent.com: 119.29.29.29, +.weixin.com: 119.29.29.29, +.qpic.cn: 119.29.29.29, +.jd.com: 119.29.29.29, +.bilibili.com: 119.29.29.29, +.hdslb.com: 119.29.29.29, +.163.com: 119.29.29.29, +.126.com: 119.29.29.29, +.126.net: 119.29.29.29, +.127.net: 119.29.29.29, +.netease.com: 119.29.29.29, +.baidu.com: 223.5.5.5, +.bdstatic.com: 223.5.5.5, +.bilivideo.+: 119.29.29.29, +.iqiyi.com: 119.29.29.29, +.douyinvod.com: 180.184.1.1, +.douyin.com: 180.184.1.1, +.douyincdn.com: 180.184.1.1, +.douyinpic.com: 180.184.1.1, +.feishu.cn: 180.184.1.1}
+  nameserver: ['https://223.6.6.6/dns-query', 'https://120.53.53.53/dns-query', 'tls://223.5.5.5:853']
+proxies:
+  - {name: '剩余流量：98.87 GB', type: ss, server: hk3.network-cdn-gw.cc, port: 32058, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '距离下次重置剩余：28 天', type: ss, server: hk3.network-cdn-gw.cc, port: 32058, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '套餐到期：2025-09-02', type: ss, server: hk3.network-cdn-gw.cc, port: 32058, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '官网鏈接域名：gw-yd.com', type: ss, server: hk3.network-cdn-gw.cc, port: 32058, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '香港-IEPL-Basic专线-01', type: ss, server: hk1.network-cdn-gw.cc, port: 32060, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '香港-IEPL-Basic专线-02', type: ss, server: hk2.network-cdn-gw.cc, port: 32063, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '香港-IEPL-Basic专线-03', type: ss, server: hk13.network-cdn-gw.cc, port: 32061, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '香港-IEPL-Basic专线-04', type: ss, server: hk14.network-cdn-gw.cc, port: 32062, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '香港-IEPL-Basic专线-05', type: ss, server: hk15.network-cdn-gw.cc, port: 47705, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '香港-IEPL-Basic专线-06', type: ss, server: hk16.network-cdn-gw.cc, port: 47706, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '香港-IEPL-Basic专线-07', type: ss, server: hk17.network-cdn-gw.cc, port: 47707, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '香港-IEPL-Basic专线-08', type: ss, server: hk18.network-cdn-gw.cc, port: 47708, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '香港-IEPL-Basic专线-09', type: ss, server: hk09.network-cdn-gw.cc, port: 47709, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '香港-IEPL-Basic专线-10', type: ss, server: hk11.network-cdn-gw.cc, port: 47711, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '美国-IEPL-Basic-01|gpt|专用线路', type: ss, server: us06.network-cdn-gw.cc, port: 43111, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '美国-IEPL-Basic-02|gpt|专用线路', type: ss, server: us07.network-cdn-gw.cc, port: 43211, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '美国-IEPL-Basic-03|gpt|专用线路', type: ss, server: us08.network-cdn-gw.cc, port: 43212, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '美国-IEPL-Basic-04|gpt|专用线路', type: ss, server: us9.network-cdn-gw.cc, port: 43213, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '美国-IEPL-Basic-05|gpt|专用线路', type: ss, server: us10.network-cdn-gw.cc, port: 43215, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '日本-IEPL-Basic专线-01|gpt|专用线路', type: ss, server: jp01.network-cdn-gw.cc, port: 48801, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '日本-IEPL-Basic专线-02|gpt|专用线路', type: ss, server: jp2.network-cdn-gw.cc, port: 48802, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '台湾-IEPL-Basic专线-01', type: ss, server: tw1.network-cdn-gw.cc, port: 46601, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '新加坡-IEPL-Basic专线-01', type: ss, server: sgp01.network-cdn-gw.cc, port: 45506, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '韩国-IEPL-Basic专线-|X2|', type: ss, server: kr03.network-cdn-gw.cc, port: 36220, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '越南-IEPL-Basic专线-01', type: ss, server: vn01.network-cdn-gw.cc, port: 20001, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+  - {name: '英国-IEPL-Basic专线-01', type: ss, server: uks1.network-cdn-gw.cc, port: 10014, cipher: chacha20-ietf-poly1305, password: ddaeba8b-93aa-44ad-9331-791ea4ba7e60, udp: true}
+proxy-groups:
+  - name: "悠兔"
+    type: select
+    proxies:
+      - "美国-IEPL-Basic-01|gpt|专用线路"
+      - "美国-IEPL-Basic-02|gpt|专用线路"
+      - "美国-IEPL-Basic-03|gpt|专用线路"
+      - "日本-IEPL-Basic专线-01|gpt|专用线路"
+      - "日本-IEPL-Basic专线-02|gpt|专用线路"
+      - "香港-IEPL-Basic专线-01"
+      - "香港-IEPL-Basic专线-02"
+      - "香港-IEPL-Basic专线-03"
+      - "新加坡-IEPL-Basic专线-01"
+      - "台湾-IEPL-Basic专线-01"
+      - "DIRECT"
+  - name: "自动选择"
+    type: url-test
+    proxies:
+      - "美国-IEPL-Basic-01|gpt|专用线路"
+      - "美国-IEPL-Basic-02|gpt|专用线路"
+      - "日本-IEPL-Basic专线-01|gpt|专用线路"
+      - "香港-IEPL-Basic专线-01"
+      - "香港-IEPL-Basic专线-02"
+    url: 'http://www.gstatic.com/generate_204'
+    interval: 300
+  - name: "美国节点"
+    type: select
+    proxies:
+      - "美国-IEPL-Basic-01|gpt|专用线路"
+      - "美国-IEPL-Basic-02|gpt|专用线路"
+      - "美国-IEPL-Basic-03|gpt|专用线路"
+      - "美国-IEPL-Basic-04|gpt|专用线路"
+      - "美国-IEPL-Basic-05|gpt|专用线路"
+  - name: "香港节点"
+    type: select
+    proxies:
+      - "香港-IEPL-Basic专线-01"
+      - "香港-IEPL-Basic专线-02"
+      - "香港-IEPL-Basic专线-03"
+      - "香港-IEPL-Basic专线-04"
+      - "香港-IEPL-Basic专线-05"
+      - "香港-IEPL-Basic专线-06"
+      - "香港-IEPL-Basic专线-07"
+      - "香港-IEPL-Basic专线-08"
+      - "香港-IEPL-Basic专线-09"
+      - "香港-IEPL-Basic专线-10"
+# Proxies and proxy groups will be inserted here
+rules:
+  - 'DOMAIN-SUFFIX,huggingface.co,美国节点'
+  - 'DOMAIN-SUFFIX,hf.co,美国节点'
+  - 'DOMAIN-SUFFIX,huggingfaceassets.com,美国节点'
+  - 'DOMAIN-SUFFIX,copilot.microsoft.com,悠兔'
+  - 'DOMAIN-SUFFIX,steamcontent.com,DIRECT'
+  - 'DOMAIN-SUFFIX,steamstatic.com,DIRECT'
+  - 'DOMAIN-SUFFIX,steamserver.net,DIRECT'
+  - 'DOMAIN-SUFFIX,test.steampowered.com,DIRECT'
+  - 'DOMAIN-SUFFIX,api.steampowered.com,DIRECT'
+  - 'DOMAIN-SUFFIX,rmbgame.net,DIRECT'
+  - 'DOMAIN,steamcdn-a.akamaihd.net,DIRECT'
+  - 'DOMAIN-SUFFIX,cm.steampowered.com,DIRECT'
+  - 'IP-CIDR,45.121.184.0/24,DIRECT'
+  - 'IP-CIDR,103.10.124.0/23,DIRECT'
+  - 'IP-CIDR,103.28.54.0/24,DIRECT'
+  - 'IP-CIDR,146.66.152.0/24,DIRECT'
+  - 'IP-CIDR,146.66.155.0/24,DIRECT'
+  - 'IP-CIDR,153.254.86.0/24,DIRECT'
+  - 'IP-CIDR,155.133.224.0/22,DIRECT'
+  - 'IP-CIDR,155.133.230.0/24,DIRECT'
+  - 'IP-CIDR,155.133.232.0/23,DIRECT'
+  - 'IP-CIDR,155.133.234.0/24,DIRECT'
+  - 'IP-CIDR,155.133.236.0/22,DIRECT'
+  - 'IP-CIDR,155.133.240.0/21,DIRECT'
+  - 'IP-CIDR,155.133.248.0/22,DIRECT'
+  - 'IP-CIDR,155.133.252.0/23,DIRECT'
+  - 'IP-CIDR,155.133.254.0/24,DIRECT'
+  - 'IP-CIDR,162.254.192.0/21,DIRECT'
+  - 'IP-CIDR,185.25.182.0/23,DIRECT'
+  - 'IP-CIDR,208.78.164.0/22,DIRECT'
+  - 'GEOIP,CN,DIRECT'
+  - 'MATCH,悠兔'
